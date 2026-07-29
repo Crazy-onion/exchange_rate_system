@@ -253,7 +253,7 @@ table tr:hover { background: #f8f9ff; }
     </div>
   </div>
 
-  <div class="refresh-note" id="refreshNote">提示：点击「手动实时更新」仅刷新本页展示数据，<b>底稿 Excel 不会同步更新</b>。如需下载最新底稿 Excel，请联系管理员在 GitHub Actions 触发更新后再下载。</div>
+  <div class="refresh-note" id="refreshNote">提示：点击「手动实时更新」仅刷新本页展示数据，<b>底稿 Excel 不会同步更新</b>。如需下载最新底稿 Excel，请到 GitHub Actions 手动触发更新（Run workflow）后再下载。</div>
 
   <div class="section">
     <div class="section-title">日期选择</div>
@@ -376,7 +376,7 @@ function manualRefresh() {
       document.getElementById('manualUpdateTime').textContent = ts;
       var note = document.getElementById('refreshNote');
       if (note) {
-        note.innerHTML = '本页数据已于 ' + ts + ' 刷新（为最近一次已部署数据）。<b>注意：底稿 Excel 未更新</b>，如需最新 Excel，请联系管理员在 GitHub Actions 触发更新后再下载。';
+        note.innerHTML = '本页数据已于 ' + ts + ' 刷新（为最近一次已部署数据）。<b>注意：底稿 Excel 未更新</b>，如需最新 Excel，请到 GitHub Actions 手动触发更新（Run workflow）后再下载。';
       }
       btn.textContent = oldText;
       btn.disabled = false;
@@ -402,52 +402,24 @@ function cloudTrigger(btn) {
   btn.disabled = true;
   btn.textContent = '云端更新中…';
   setNote('已向云端发送更新请求：正在重新抓取汇率并生成 Excel（约 1–3 分钟），完成后本页会自动刷新。', false);
-  fetch(UPDATE_WORKER_URL + '/trigger', { method: 'POST' })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-      if (!d.ok) throw new Error((d.error || ('HTTP ' + d.status)));
-      pollRun(d.run_id, btn, oldText);
+  fetch(UPDATE_WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason: '网页手动触发' })
+  })
+    .then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json().catch(function() { return {}; });
+    })
+    .then(function() {
+      setNote('云端更新已触发，正在后台重新抓取汇率并生成 Excel，约 1–3 分钟后本页将自动刷新。若未自动刷新，请手动刷新页面。', false);
+      setTimeout(function() { location.reload(); }, 120000);
     })
     .catch(function(e) {
       btn.textContent = oldText;
       btn.disabled = false;
       setNote('触发云端更新失败：' + e.message + '。请改用电脑/手机浏览器到 GitHub Actions 手动 Run workflow。', true);
     });
-}
-
-function pollRun(runId, btn, oldText) {
-  if (!runId) {
-    setNote('云端更新已触发（无法获取运行ID），约 2 分钟后请手动刷新本页查看最新数据。', false);
-    setTimeout(function() { location.reload(); }, 120000);
-    return;
-  }
-  var tries = 0;
-  var iv = setInterval(function() {
-    tries++;
-    fetch(UPDATE_WORKER_URL + '/status?run_id=' + runId)
-      .then(function(r) { return r.json(); })
-      .then(function(s) {
-        if (s.status === 'completed') {
-          clearInterval(iv);
-          if (s.conclusion === 'success') {
-            setNote('云端更新已完成，Excel 与看板均已刷新，正在重新加载页面…', false);
-            setTimeout(function() { location.reload(); }, 1500);
-          } else {
-            btn.textContent = oldText;
-            btn.disabled = false;
-            setNote('云端更新任务结束但未成功（' + s.conclusion + '），请到 GitHub Actions 查看运行日志。', true);
-          }
-        } else if (tries > 50) {
-          clearInterval(iv);
-          btn.textContent = oldText;
-          btn.disabled = false;
-          setNote('更新仍在后台进行，请稍后刷新页面；或到 GitHub Actions 确认状态。', true);
-        } else {
-          btn.textContent = '云端更新中…(' + (s.status || '运行中') + ')';
-        }
-      })
-      .catch(function() { /* 轮询失败忽略，继续 */ });
-  }, 3000);
 }
 
 // ===================== 应用数据包（初始 / 刷新） =====================
