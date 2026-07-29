@@ -22,8 +22,19 @@ export default {
       'Content-Type': 'application/json',
       'Access-Control-Allow-Origin': '*'
     };
+    const preflightHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Max-Age': '86400'
+    };
 
     const url = new URL(request.url);
+
+    // 处理浏览器 CORS 预检请求
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: preflightHeaders });
+    }
 
     if (request.method === 'POST' && url.pathname === '/trigger') {
       if (!TOKEN) {
@@ -90,6 +101,6 @@ export default {
         { headers: corsHeaders });
     }
 
-    return new Response('exchange update worker', { headers: { 'Content-Type': 'text/plain' } });
+    return new Response('exchange update worker', { headers: corsHeaders });
   }
 };
