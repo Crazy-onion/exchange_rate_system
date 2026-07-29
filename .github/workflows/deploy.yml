@@ -1,6 +1,9 @@
 name: 汇率底稿自动更新
 
 on:
+  # 推送即运行：每次 git push 到默认分支都重新抓取+发布（含首次发布）
+  push:
+    branches: [ main, master ]
   # 定时：每个工作日 18:00（北京时间）= 10:00 UTC，周一至周五
   schedule:
     - cron: '0 10 * * 1-5'
