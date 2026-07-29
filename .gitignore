@@ -1,0 +1,14 @@
+# 运行时生成 / 缓存（由工作流重新生成，无需提交）
+dist/
+cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# 本地 Python 虚拟环境
+envs/
+venv/
+
+# 系统 / 编辑器
+.DS_Store
+*.swp
