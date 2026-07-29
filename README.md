@@ -58,3 +58,29 @@ python regen_all.py       # 仅从缓存重新生成（不联网抓取）
 
 ## 数据滞后标注
 各币种独立取「截止日或之前最近一个已发布工作日」的值，并在卡片标注 `数据日期: X`；若某币种取自更早日期（如当日该汇率尚未发布），卡片标红显示 `(滞后)`，区块标题汇总列出滞后期币种。
+
+## 启用网页一键更新（可选，推荐手机端）
+
+看板上的「手动实时更新」按钮默认只从已部署站点重新拉取 `data.json` 重绘页面（Excel 不变）。若希望**点一下按钮就真正重新抓取并重算 Excel**（尤其手机打不开 github.com 时），需要一个持有你 GitHub 令牌的云端小函数——Cloudflare Worker。本仓库已提供 `cloudflare-worker.js`，你只需做一次配置。
+
+### 前提：准备一枚 GitHub PAT（令牌）
+1. github.com → 右上头像 → **Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token (classic)**。
+2. Note 填 `exchange-update-worker`；Expiration 选一个较长周期（如 90 天）。
+3. **只勾选 `workflow`**（已包含触发 Actions 的权限），其余全部不勾。
+4. 点 **Generate token**，复制生成的令牌（只显示一次，存好）。
+
+### 步骤：创建并配置 Cloudflare Worker
+1. 打开 https://cloudflare.com 注册/登录（免费）。
+2. 左侧菜单 **Workers & Pages**（或 Compute → Workers）→ 点 **Create** → 选 **Create Worker**。
+3. Worker 名称填 `exchange-update`，进入在线代码编辑器（默认是 hello world 示例）。
+4. **清空编辑器全部内容**，把本仓库 `cloudflare-worker.js` 的**全部内容**粘贴进去 → 点 **Deploy**。
+5. 进入该 Worker → 顶部 **Settings → Variables**（或 Runtime）→ 点 **Add variable** 并选择 **Secret** 类型：
+   - Name: `GH_TOKEN`　Value: 粘贴刚才复制的 PAT → 保存（加密存储）。
+6. 修改 secret 后建议再 **Deploy** 一次使其生效。回到 Worker 概览，复制其地址，形如：
+   `https://exchange-update.<你的子域>.workers.dev`
+7. 把这个地址发给助手，填进 `config.json` 的 `update_worker_url` 并提交、Push。此后看板按钮即变为**一键云端更新**（触发重抓 + 重算 Excel + 自动刷新）。
+
+### 说明
+- 令牌仅存于 Cloudflare 的加密 secret 中，**不进网页、不进仓库**，安全。
+- Worker 免费额度（每日 10 万次请求）远超需求。
+- 未配置 Worker 前，按钮仍退化为"仅刷新页面"，行为不变。
