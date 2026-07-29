@@ -200,6 +200,8 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 .update-time { font-size: 12px; color: #999; }
 .btn-download { display: inline-block; padding: 8px 20px; background: #c62828; color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; transition: background 0.15s; }
 .btn-download:hover { background: #b71c1c; }
+.refresh-note { font-size: 12px; color: #b26a00; background: #fff8e1; border-left: 3px solid #ffb300; padding: 8px 12px; margin-bottom: 14px; border-radius: 4px; line-height: 1.6; }
+.refresh-note b { color: #e65100; }
 .btn-export { display: inline-block; padding: 6px 16px; border: 1px solid #1a237e; background: white; color: #1a237e; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
 .btn-export:hover { background: #e8eaf6; }
 .stats-row { display: flex; gap: 20px; margin-top: 12px; }
@@ -237,6 +239,8 @@ table tr:hover { background: #f8f9ff; }
       <button class="btn-download" id="refreshBtn" style="background:#283593;" onclick="manualRefresh()">手动实时更新</button>
     </div>
   </div>
+
+  <div class="refresh-note" id="refreshNote">提示：点击「手动实时更新」仅刷新本页展示数据，<b>底稿 Excel 不会同步更新</b>。如需下载最新底稿 Excel，请联系管理员在 GitHub Actions 触发更新后再下载。</div>
 
   <div class="section">
     <div class="section-title">日期选择</div>
@@ -355,6 +359,10 @@ function manualRefresh() {
       var ts = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' +
                pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
       document.getElementById('manualUpdateTime').textContent = ts;
+      var note = document.getElementById('refreshNote');
+      if (note) {
+        note.innerHTML = '本页数据已于 ' + ts + ' 刷新（为最近一次已部署数据）。<b>注意：底稿 Excel 未更新</b>，如需最新 Excel，请联系管理员在 GitHub Actions 触发更新后再下载。';
+      }
       btn.textContent = oldText;
       btn.disabled = false;
     })
