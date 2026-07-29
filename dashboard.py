@@ -11,9 +11,22 @@ import os
 from datetime import datetime
 
 
+def load_update_worker_url():
+    """从 config.json 读取云端一键更新 Worker 地址；未配置则返回空字符串（按钮退化为本地刷新）。"""
+    try:
+        cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.json')
+        if os.path.exists(cfg_path):
+            with open(cfg_path, 'r', encoding='utf-8') as f:
+                cfg = json.load(f)
+            return (cfg.get('update_worker_url') or '').strip()
+    except Exception:
+        pass
+    return ''
+
+
 def generate_dashboard(output_path, ortax_cny, ortax_usd, rmb_rates, rmb_headers, converter_data,
                        excel_filename=None, excel_files=None, auth_password='exchange2026',
-                       update_time=None):
+                       update_time=None, update_worker_url=''):
     """
     生成HTML看板
     auth_password: 访问密码，默认 exchange2026
@@ -54,7 +67,7 @@ def generate_dashboard(output_path, ortax_cny, ortax_usd, rmb_rates, rmb_headers
 
     html = _build_html(
         rmb_data, rmb_by_currency, ortax_data, converter_json, currencies,
-        update_time, excel_filename, excel_files or [], auth_password
+        update_time, excel_filename, excel_files or [], auth_password, update_worker_url
     )
 
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -110,7 +123,7 @@ def generate_dashboard(output_path, ortax_cny, ortax_usd, rmb_rates, rmb_headers
 
 
 def _build_html(rmb_data, rmb_by_currency, ortax_data, converter_data, currencies,
-                update_time, excel_filename, excel_files, auth_password):
+                update_time, excel_filename, excel_files, auth_password, update_worker_url=''):
     """构建完整HTML - 密码门控 + 直接JSON嵌入（可靠稳定）"""
 
     rmb_json = json.dumps(rmb_data, ensure_ascii=False)
@@ -324,6 +337,7 @@ var quoteInfo = __QUOTE_INFO_JSON__;
 var minDate = '__MIN_DATE__';
 var maxDate = '__MAX_DATE__';
 var updateTime = '__UPDATE_TIME__';
+var UPDATE_WORKER_URL = '__UPDATE_WORKER_URL__';
 
 var chart = null;
 
@@ -344,6 +358,7 @@ function initDashboard() {
 // ===================== 手动实时更新 =====================
 function manualRefresh() {
   var btn = document.getElementById('refreshBtn');
+  if (UPDATE_WORKER_URL) { cloudTrigger(btn); return; }
   var oldText = btn.textContent;
   btn.textContent = '更新中...';
   btn.disabled = true;
@@ -371,6 +386,68 @@ function manualRefresh() {
       btn.disabled = false;
       alert('手动更新失败：无法获取最新数据。\\n请确认以网页方式打开（非本地文件），且数据文件已随最新抓取部署。\\n错误：' + e.message);
     });
+}
+
+// ===================== 云端一键更新（需配置 UPDATE_WORKER_URL） =====================
+function setNote(html, warn) {
+  var n = document.getElementById('refreshNote');
+  if (n) {
+    n.innerHTML = html;
+    n.style.borderLeftColor = warn ? '#e65100' : '#ffb300';
+  }
+}
+
+function cloudTrigger(btn) {
+  var oldText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '云端更新中…';
+  setNote('已向云端发送更新请求：正在重新抓取汇率并生成 Excel（约 1–3 分钟），完成后本页会自动刷新。', false);
+  fetch(UPDATE_WORKER_URL + '/trigger', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (!d.ok) throw new Error((d.error || ('HTTP ' + d.status)));
+      pollRun(d.run_id, btn, oldText);
+    })
+    .catch(function(e) {
+      btn.textContent = oldText;
+      btn.disabled = false;
+      setNote('触发云端更新失败：' + e.message + '。请改用电脑/手机浏览器到 GitHub Actions 手动 Run workflow。', true);
+    });
+}
+
+function pollRun(runId, btn, oldText) {
+  if (!runId) {
+    setNote('云端更新已触发（无法获取运行ID），约 2 分钟后请手动刷新本页查看最新数据。', false);
+    setTimeout(function() { location.reload(); }, 120000);
+    return;
+  }
+  var tries = 0;
+  var iv = setInterval(function() {
+    tries++;
+    fetch(UPDATE_WORKER_URL + '/status?run_id=' + runId)
+      .then(function(r) { return r.json(); })
+      .then(function(s) {
+        if (s.status === 'completed') {
+          clearInterval(iv);
+          if (s.conclusion === 'success') {
+            setNote('云端更新已完成，Excel 与看板均已刷新，正在重新加载页面…', false);
+            setTimeout(function() { location.reload(); }, 1500);
+          } else {
+            btn.textContent = oldText;
+            btn.disabled = false;
+            setNote('云端更新任务结束但未成功（' + s.conclusion + '），请到 GitHub Actions 查看运行日志。', true);
+          }
+        } else if (tries > 50) {
+          clearInterval(iv);
+          btn.textContent = oldText;
+          btn.disabled = false;
+          setNote('更新仍在后台进行，请稍后刷新页面；或到 GitHub Actions 确认状态。', true);
+        } else {
+          btn.textContent = '云端更新中…(' + (s.status || '运行中') + ')';
+        }
+      })
+      .catch(function() { /* 轮询失败忽略，继续 */ });
+  }, 3000);
 }
 
 // ===================== 应用数据包（初始 / 刷新） =====================
@@ -843,5 +920,6 @@ initDashboard();
     html = html.replace('__QUOTE_INFO_JSON__', quote_info_json)
     html = html.replace('__EXCEL_FILES_JSON__', excel_files_json)
     html = html.replace('__AUTH_PASSWORD__', auth_password)
+    html = html.replace('__UPDATE_WORKER_URL__', update_worker_url or '')
 
     return html

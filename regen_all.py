@@ -10,7 +10,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from excel_generator import generate_excel_for_month
-from dashboard import generate_dashboard
+from dashboard import generate_dashboard, load_update_worker_url
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_PATH = os.path.join(BASE_DIR, "template", "汇率底稿模版.xlsx")
@@ -90,7 +90,8 @@ def main():
         excel_filename=current_excel,
         excel_files=excel_files,
         auth_password='exchange2026',
-        update_time=data.get('update_time')
+        update_time=data.get('update_time'),
+        update_worker_url=load_update_worker_url()
     )
 
     print(f"\n完成！")

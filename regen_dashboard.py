@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from dashboard import generate_dashboard
+from dashboard import generate_dashboard, load_update_worker_url
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_DIR = os.path.join(BASE_DIR, "cache")
@@ -34,7 +34,8 @@ generate_dashboard(
     rmb_rates=cache['rmb_rates'],
     rmb_headers=cache['rmb_headers'],
     converter_data=cache['converter_data'],
-    excel_filename=excel_filename
+    excel_filename=excel_filename,
+    update_worker_url=load_update_worker_url()
 )
 
 print(f"\n看板已重新生成: {dashboard_path}")

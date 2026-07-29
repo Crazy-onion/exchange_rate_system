@@ -144,6 +144,7 @@ def main():
     # 3. 生成 HTML 看板
     # ============================================================
     print("\n[步骤3] 生成HTML看板...")
+    from dashboard import load_update_worker_url
     dashboard_path = os.path.join(DIST_DIR, "index.html")
 
     generate_dashboard(
@@ -155,7 +156,8 @@ def main():
         converter_data=converter_data,
         excel_filename=excel_filename,
         excel_files=excel_files,
-        auth_password='exchange2026'
+        auth_password='exchange2026',
+        update_worker_url=load_update_worker_url()
     )
 
     # ============================================================
