@@ -241,19 +241,19 @@ table tr:hover { background: #f8f9ff; }
 
 <div class="header">
   <h1>汇率波动看板</h1>
-  <div class="subtitle">数据来源：SAFE国家外汇管理局 / Ortax印尼央行</div>
+  <div class="subtitle">数据来源：SAFE国家外汇管理局 / Ortax印尼央行 ｜ <a href="manual.html" target="_blank" style="color:#fff;text-decoration:underline;">使用手册</a></div>
 </div>
 
 <div class="container">
   <div class="info-bar">
-    <div class="update-time">自动更新：<span id="autoUpdateTime">__UPDATE_TIME__</span> ｜ 手动更新：<span id="manualUpdateTime">尚未手动更新</span></div>
+    <div class="update-time">自动更新：<span id="autoUpdateTime">__UPDATE_TIME__</span>（每天 10:30、14:30 自动更新）｜ 手动更新：<span id="manualUpdateTime">尚未手动更新</span></div>
     <div style="display:flex; gap:10px; align-items:center;">
       __EXCEL_LINK__
       <button class="btn-download" id="refreshBtn" style="background:#283593;" onclick="manualRefresh()">手动实时更新</button>
     </div>
   </div>
 
-  <div class="refresh-note" id="refreshNote">提示：点击「手动实时更新」仅刷新本页展示数据，<b>底稿 Excel 不会同步更新</b>。如需下载最新底稿 Excel，请到 GitHub Actions 手动触发更新（Run workflow）后再下载。</div>
+  <div class="refresh-note" id="refreshNote">提示：点击「手动实时更新」仅刷新本页展示数据，底稿 Excel 不会同步更新。如需下载最新底稿 Excel，请联系管理员后台更新后再下载。</div>
 
   <div class="section">
     <div class="section-title">日期选择</div>
@@ -374,17 +374,12 @@ function manualRefresh() {
       var ts = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()) + ' ' +
                pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
       document.getElementById('manualUpdateTime').textContent = ts;
-      var note = document.getElementById('refreshNote');
-      if (note) {
-        note.innerHTML = '本页数据已于 ' + ts + ' 刷新（为最近一次已部署数据）。<b>注意：底稿 Excel 未更新</b>，如需最新 Excel，请到 GitHub Actions 手动触发更新（Run workflow）后再下载。';
-      }
       btn.textContent = oldText;
       btn.disabled = false;
     })
     .catch(function(e) {
       btn.textContent = oldText;
       btn.disabled = false;
-      alert('手动更新失败：无法获取最新数据。\\n请确认以网页方式打开（非本地文件），且数据文件已随最新抓取部署。\\n错误：' + e.message);
     });
 }
 
