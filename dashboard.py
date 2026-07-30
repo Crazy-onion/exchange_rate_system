@@ -181,6 +181,8 @@ body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f
 .header { background: linear-gradient(135deg, #1a237e 0%, #283593 100%); color: white; padding: 20px 30px; }
 .header h1 { font-size: 22px; font-weight: 500; }
 .header .subtitle { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+.header .manual-link { display: inline-block; background: #ffca28; color: #1a237e; font-weight: 700; padding: 2px 10px; border-radius: 12px; text-decoration: none; margin-left: 6px; box-shadow: 0 1px 4px rgba(0,0,0,0.25); transition: background 0.15s; }
+.header .manual-link:hover { background: #ffd54f; }
 .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 .section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #1a237e; border-left: 4px solid #1a237e; padding-left: 12px; }
@@ -241,7 +243,7 @@ table tr:hover { background: #f8f9ff; }
 
 <div class="header">
   <h1>汇率波动看板</h1>
-  <div class="subtitle">数据来源：SAFE国家外汇管理局 / Ortax印尼央行 ｜ <a href="manual.html" target="_blank" style="color:#fff;text-decoration:underline;">使用手册</a></div>
+  <div class="subtitle">数据来源：SAFE国家外汇管理局 / Ortax印尼央行 ｜ <a class="manual-link" href="manual.html" target="_blank">📖 使用手册</a></div>
 </div>
 
 <div class="container">
