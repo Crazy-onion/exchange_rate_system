@@ -1,0 +1,14 @@
+name = "exchange-rate-cron"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+
+# GH_TOKEN 不要写在这里（会进版本库）。用以下任一方式设置：
+#   控制台：Worker → Settings → Variables → Add variable（勾 Secret）
+#   或命令行：npx wrangler secret put GH_TOKEN
+# [vars] 仅放非敏感配置
+
+# Cron Triggers（UTC 时间）
+#   30 2 * * *  = 北京时间 10:30
+#   30 6 * * *  = 北京时间 14:30
+[triggers]
+crons = ["30 2 * * *", "30 6 * * *"]
