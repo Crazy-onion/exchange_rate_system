@@ -12,9 +12,10 @@
 3. Expiration：自选（建议 1 年，到期前记得换）
 4. Resource owner：`Crazy-onion`
 5. Repository access：**Only select repositories** → 选 `exchange_rate_system`
-6. Repository permissions：
-   - **Workflows：Read and write**（触发 workflow 必需）
-   - **Contents：Read-only**（让令牌能定位仓库）
+6. Repository permissions（⚠️ 关键：`workflow_dispatch` 接口需要的是 **Actions** 权限，不是 Workflows）：
+   - **Actions：Read and write**（触发 workflow_dispatch 必需，必须有）
+   - **Contents：Read-only**（让令牌能读取仓库与工作流文件）
+   - （可选）Workflows：Read and write（保险起见可开，但触发 dispatch 不依赖它）
 7. 点 **Generate token** → **复制 token**（只显示一次，妥善保管）
 
 ## 二、在 Cloudflare 建 Worker

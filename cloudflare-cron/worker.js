@@ -7,7 +7,7 @@
 // 部署（控制台，无需命令行，详见 README.md）：
 //   1. Cloudflare 控制台 → Workers & Pages → Create → 新建 Worker（如 exchange-rate-cron）
 //   2. 把本文件粘贴进编辑器 → Deploy
-//   3. Settings → Variables → 添加 Secret：GH_TOKEN = 你的 GitHub fine-grained PAT（需本仓库 Workflows 读写权限）
+//   3. Settings → Variables → 添加 Secret：GH_TOKEN = 你的 GitHub fine-grained PAT（需本仓库 Actions: Read and write 权限，Contents: Read-only）
 //   4. Triggers → Cron Triggers → 添加两条：30 2 * * *  和  30 6 * * *（UTC，等于北京 10:30 / 14:30）
 //
 // 说明：本 Worker 不绑定域名、不暴露公网接口，仅由 Cloudflare 定时调用。
