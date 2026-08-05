@@ -41,9 +41,12 @@
 
 ## 五、验证
 
-- 在 **Triggers** 页，对应 Cron 右边点 **Test**，可立即触发一次；
-- 去 GitHub 仓库 **Actions** 页，应出现一条 `workflow_dispatch` 事件的新运行；
-- 跑完看板上「自动更新时间」应变为触发时刻。
+1. 打开 Cloudflare 控制台 → 该 Worker → **Observability** → 右上角把 **Last 1 hour** 改成 **Last 7 days** → 点 **Run Query**；
+2. 应能看到 Cron 触发记录。若之前出现 `HTTP 403`，说明 GH_TOKEN 权限不足，按第一步重新生成并替换即可；
+3. 等第二天 10:30 / 14:30 后，去 GitHub 仓库 **Actions** 页，应出现 `workflow_dispatch` 事件的新运行；
+4. 跑完看板上「自动更新时间」应变为触发时刻。
+
+> 注：新版 Cloudflare 控制台中 Cron 旁的「Test」按钮不一定可见，以第二天真实定时跑通为准。
 
 ---
 

@@ -2,7 +2,7 @@
 //
 // 作用：到点在 Cloudflare 服务器上自动调用 GitHub 的 workflow_dispatch 接口，
 //       触发仓库的「汇率底稿自动更新」工作流重新抓取+生成 Excel+发布。
-// 优点：跑在 Cloudflare 机房，不依赖你本机在线，也不需要你浏览器访问 workers.dev（和之前的"按钮"是两码事）。
+// 优点：跑在 Cloudflare 机房，不依赖本机在线，也不需要你浏览器访问 workers.dev（和之前的"按钮"是两码事）。
 //
 // 部署（控制台，无需命令行，详见 README.md）：
 //   1. Cloudflare 控制台 → Workers & Pages → Create → 新建 Worker（如 exchange-rate-cron）
@@ -38,15 +38,15 @@ async function triggerDispatch(token) {
   return { ok: res.status >= 200 && res.status < 300, status: res.status, body: text };
 }
 
-// 定时触发（Cron Triggers 调用）
+// 模块语法：scheduled 的第三个参数 ctx 才有 waitUntil
 export default {
-  async scheduled(event, env) {
+  async scheduled(event, env, ctx) {
     const r = await triggerDispatch(env.GH_TOKEN);
-    // 把结果记到日志，便于在 Cloudflare 控制台 → Worker → Logs 里查看
-    event.waitUntil(Promise.resolve());
+    // 让 Cloudflare 等待本次调用完成（避免 Cron 被提前回收）
+    ctx.waitUntil(Promise.resolve());
     return new Response(JSON.stringify(r), { status: r.ok ? 200 : 502, headers: { 'content-type': 'application/json' } });
   },
-  // 可选：在 Cloudflare 控制台手动 "Send a test request" 时也能触发一次（用于验证）
+  // 可选：在 Cloudflare 控制台 "Send a test request" 时也能触发一次（用于验证）
   async fetch(request, env) {
     const r = await triggerDispatch(env.GH_TOKEN);
     return new Response(JSON.stringify(r), { status: r.ok ? 200 : 502, headers: { 'content-type': 'application/json' } });
