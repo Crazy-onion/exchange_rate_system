@@ -12,3 +12,6 @@ venv/
 # 系统 / 编辑器
 .DS_Store
 *.swp
+
+# WorkBuddy 工具目录（自动化/记忆，不入库）
+.workbuddy/

@@ -8,6 +8,7 @@
 import requests
 import re
 import io
+import os
 import json
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -131,6 +132,48 @@ def scrape_ortax_cny(max_pages=30):
 def scrape_ortax_usd(max_pages=30):
     """抓取USD中间价"""
     return scrape_ortax('USD', max_pages)
+
+
+# --- 兜底机制 ---------------------------------------------------------
+# 背景：datacenter.ortax.org 对 GitHub Actions 机房（海外 IP）限制访问，
+#       导致 Actions 上实时抓取返回 0 条，线上印尼汇率变空。
+#       本机（国内网络）可正常抓取，因此把抓取结果提交为兜底文件，
+#       Actions 实时抓取失败时自动降级使用，保证印尼数据不为空。
+FALLBACK_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             'fallback', 'ortax_fallback.json')
+
+
+def load_ortax_fallback(currency):
+    """从仓库内兜底文件读取 Ortax 历史数据"""
+    if not os.path.exists(FALLBACK_PATH):
+        print(f"[Ortax兜底] 兜底文件不存在: {FALLBACK_PATH}")
+        return []
+    try:
+        with open(FALLBACK_PATH, encoding='utf-8') as f:
+            obj = json.load(f)
+        items = (obj.get('data') or {}).get(currency) or []
+        gen = obj.get('generated_at', '未知时间')
+        print(f"[Ortax兜底] 读取 {currency} 兜底数据 {len(items)} 条"
+              f"（生成于 {gen}）")
+        return items
+    except Exception as e:
+        print(f"[Ortax兜底] 读取失败: {e}")
+        return []
+
+
+def scrape_ortax_with_fallback(currency='CNY', max_pages=25):
+    """优先实时抓取；若返回空（如 Actions 机房被限制），自动降级到兜底数据"""
+    rates = scrape_ortax(currency, max_pages=max_pages)
+    if rates:
+        print(f"[Ortax] {currency} 使用实时数据 {len(rates)} 条")
+        return rates
+    print(f"[Ortax] {currency} 实时抓取为空，尝试兜底数据...")
+    fb = load_ortax_fallback(currency)
+    if fb:
+        print(f"[Ortax] {currency} 已降级为兜底数据 {len(fb)} 条")
+    else:
+        print(f"[Ortax] {currency} 兜底数据也不可用，印尼数据将为空")
+    return fb
 
 
 # ============================================================

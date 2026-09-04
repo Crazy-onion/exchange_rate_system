@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 # 确保能 import 同目录模块
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from scrapers import scrape_ortax, scrape_safe_converter, scrape_safe_rmb_rate
+from scrapers import scrape_ortax_with_fallback, scrape_safe_converter, scrape_safe_rmb_rate
 from excel_generator import generate_excel_for_month
 from dashboard import generate_dashboard
 import holidays
@@ -78,9 +78,11 @@ def main():
     print("\n[步骤1] 抓取汇率数据...")
 
     # 1a. Ortax 印尼央行 CNY + USD
+    #     注：datacenter.ortax.org 对 Actions 机房（海外 IP）限制访问，
+    #         实时抓取可能为空，此时自动降级使用仓库内兜底数据。
     print("\n--- 1a. Ortax 印尼央行汇率 ---")
-    ortax_cny = scrape_ortax('CNY', max_pages=25)
-    ortax_usd = scrape_ortax('USD', max_pages=25)
+    ortax_cny = scrape_ortax_with_fallback('CNY', max_pages=25)
+    ortax_usd = scrape_ortax_with_fallback('USD', max_pages=25)
 
     # 1b. SAFE 各种货币对美元折算率
     print("\n--- 1b. SAFE 货币折算率 ---")
