@@ -4,10 +4,13 @@ on:
   # 推送即运行：每次 git push 到默认分支都重新抓取+发布（含首次发布）
   push:
     branches: [ main, master ]
-  # 定时：每天北京时间 10:30（= 02:30 UTC）与 14:30（= 06:30 UTC）自动更新
+  # 定时：每天北京时间 10:30 / 12:30 / 14:30 自动更新
+  # 注意：GitHub schedule 本身不可靠（会延迟数小时甚至整班丢弃），
+  #       因此多设几个点位当保险；真正的可靠触发由本机哨兵(watcher)或手动 push 负责。
   schedule:
-    - cron: '30 2 * * *'
-    - cron: '30 6 * * *'
+    - cron: '30 2 * * *'   # 北京 10:30
+    - cron: '30 4 * * *'   # 北京 12:30
+    - cron: '30 6 * * *'   # 北京 14:30
   # 手动触发：仓库 Actions 页 -> 右上角 "Run workflow"
   workflow_dispatch:
     inputs:

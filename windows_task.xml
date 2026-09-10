@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<!-- 汇率底稿自动更新 —— Windows 计划任务定义 -->
+<!-- 触发：每日 10:30 / 14:30 + 每次登录（打开电脑后补跑）；错过则尽快补跑 -->
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Author>exchange-rate-system</Author>
+    <Description>抓取汇率数据并部署到 GitHub Pages（含印尼 Ortax 兜底刷新）</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <CalendarTrigger>
+      <StartBoundary>2026-09-10T10:30:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByDay>
+        <DaysInterval>1</DaysInterval>
+      </ScheduleByDay>
+    </CalendarTrigger>
+    <CalendarTrigger>
+      <StartBoundary>2026-09-10T14:30:00</StartBoundary>
+      <Enabled>true</Enabled>
+      <ScheduleByDay>
+        <DaysInterval>1</DaysInterval>
+      </ScheduleByDay>
+    </CalendarTrigger>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <Delay>PT3M</Delay>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <ExecutionTimeLimit>PT2H</ExecutionTimeLimit>
+    <Priority>7</Priority>
+    <RestartOnFailure>
+      <Interval>PT15M</Interval>
+      <Count>2</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>C:\Users\rfuser\.workbuddy\binaries\python\envs\default\Scripts\pythonw.exe</Command>
+      <Arguments>daily_update.py</Arguments>
+      <WorkingDirectory>C:\Users\rfuser\WorkBuddy\2026-07-24-15-41-07\exchange_rate_system</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
