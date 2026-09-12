@@ -168,6 +168,13 @@ GIT = find_git()   # 模块载入时先探测一次，main() 里会再确认
 def need_update():
     """返回 (是否需要更新, 原因说明)"""
     today = today_str()
+    # 非交易日（周末/节假日）：数据源不发布新汇率，无需更新
+    try:
+        from holidays import is_holiday
+        if is_holiday(datetime.now().date()):
+            return False, "今天是非交易日（周末/节假日），数据源不发布新汇率，无需更新"
+    except Exception:
+        pass
     reasons = []
 
     online_ok_date = None

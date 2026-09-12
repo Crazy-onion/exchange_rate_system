@@ -149,6 +149,21 @@ def main():
     from dashboard import load_update_worker_url
     dashboard_path = os.path.join(DIST_DIR, "index.html")
 
+    # 交易日判断：非交易日数据源不发布新汇率，时间戳用最新已发布数据日期，避免误导性"今天更新"
+    from holidays import is_holiday
+    today_is_workday = not is_holiday(NOW.date())
+    latest_rate_date = max((r['date'] for r in rmb_rates), default=None) if rmb_rates else None
+    if today_is_workday and latest_rate_date == NOW.strftime('%Y-%m-%d'):
+        effective_update_time = NOW.strftime('%Y-%m-%d %H:%M:%S')
+        non_trading = False
+    elif latest_rate_date:
+        # 非交易日或今日尚未发布：以最新已发布数据日期为准
+        effective_update_time = latest_rate_date + " 00:00:00"
+        non_trading = True
+    else:
+        effective_update_time = NOW.strftime('%Y-%m-%d %H:%M:%S')
+        non_trading = not today_is_workday
+
     generate_dashboard(
         output_path=dashboard_path,
         ortax_cny=ortax_cny,
@@ -159,7 +174,10 @@ def main():
         excel_filename=excel_filename,
         excel_files=excel_files,
         auth_password='exchange2026',
-        update_worker_url=load_update_worker_url()
+        update_worker_url=load_update_worker_url(),
+        update_time=effective_update_time,
+        non_trading=non_trading,
+        data_as_of=latest_rate_date
     )
 
     # ============================================================

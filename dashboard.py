@@ -26,7 +26,7 @@ def load_update_worker_url():
 
 def generate_dashboard(output_path, ortax_cny, ortax_usd, rmb_rates, rmb_headers, converter_data,
                        excel_filename=None, excel_files=None, auth_password='exchange2026',
-                       update_time=None, update_worker_url=''):
+                       update_time=None, update_worker_url='', non_trading=False, data_as_of=None):
     """
     生成HTML看板
     auth_password: 访问密码，默认 exchange2026
@@ -67,7 +67,8 @@ def generate_dashboard(output_path, ortax_cny, ortax_usd, rmb_rates, rmb_headers
 
     html = _build_html(
         rmb_data, rmb_by_currency, ortax_data, converter_json, currencies,
-        update_time, excel_filename, excel_files or [], auth_password, update_worker_url
+        update_time, excel_filename, excel_files or [], auth_password, update_worker_url,
+        non_trading, data_as_of
     )
 
     with open(output_path, 'w', encoding='utf-8') as f:
@@ -110,6 +111,8 @@ def generate_dashboard(output_path, ortax_cny, ortax_usd, rmb_rates, rmb_headers
         'quoteInfo': quote_info_map,
         'excelFiles': excel_files or [],
         'updateTime': update_time,
+        'nonTradingDay': non_trading,
+        'dataAsOf': data_as_of,
         'minDate': data_min,
         'maxDate': data_max,
     }
@@ -123,7 +126,8 @@ def generate_dashboard(output_path, ortax_cny, ortax_usd, rmb_rates, rmb_headers
 
 
 def _build_html(rmb_data, rmb_by_currency, ortax_data, converter_data, currencies,
-                update_time, excel_filename, excel_files, auth_password, update_worker_url=''):
+                update_time, excel_filename, excel_files, auth_password, update_worker_url='',
+                non_trading=False, data_as_of=None):
     """构建完整HTML - 密码门控 + 直接JSON嵌入（可靠稳定）"""
 
     rmb_json = json.dumps(rmb_data, ensure_ascii=False)
@@ -249,6 +253,7 @@ table tr:hover { background: #f8f9ff; }
 <div class="container">
   <div class="info-bar">
     <div class="update-time">自动更新：<span id="autoUpdateTime">__UPDATE_TIME__</span>（每天 10:30、14:30 自动更新）｜ 手动更新：<span id="manualUpdateTime">尚未手动更新</span></div>
+    <div id="nonTradingNote" style="display:none; margin-top:6px; padding:6px 10px; background:#fff4e0; border:1px solid #f0c36d; border-radius:6px; color:#8a5a00; font-weight:600; font-size:13px;"></div>
     <div style="display:flex; gap:10px; align-items:center;">
       __EXCEL_LINK__
       <button class="btn-download" id="refreshBtn" style="background:#283593;" onclick="manualRefresh()">手动实时更新</button>
@@ -339,6 +344,8 @@ var quoteInfo = __QUOTE_INFO_JSON__;
 var minDate = '__MIN_DATE__';
 var maxDate = '__MAX_DATE__';
 var updateTime = '__UPDATE_TIME__';
+var nonTradingDay = '__NON_TRADING__';
+var dataAsOf = '__DATA_AS_OF__';
 var UPDATE_WORKER_URL = '__UPDATE_WORKER_URL__';
 
 var chart = null;
@@ -350,7 +357,16 @@ function rebuildAll() {
   updateRateCards();
   updateChart();
   updateDownloadLink();
-  document.getElementById('autoUpdateTime').textContent = updateTime;
+  if (nonTradingDay === 'true') {
+    document.getElementById('autoUpdateTime').textContent = '非交易日';
+    var note = document.getElementById('nonTradingNote');
+    if (note) {
+      note.style.display = 'block';
+      note.textContent = '今日为非交易日，数据源未发布新汇率，页面数据截至 ' + (dataAsOf || '上一交易日');
+    }
+  } else {
+    document.getElementById('autoUpdateTime').textContent = updateTime;
+  }
 }
 
 function initDashboard() {
@@ -890,5 +906,7 @@ initDashboard();
     html = html.replace('__EXCEL_FILES_JSON__', excel_files_json)
     html = html.replace('__AUTH_PASSWORD__', auth_password)
     html = html.replace('__UPDATE_WORKER_URL__', update_worker_url or '')
+    html = html.replace('__NON_TRADING__', 'true' if non_trading else 'false')
+    html = html.replace('__DATA_AS_OF__', data_as_of or '')
 
     return html
