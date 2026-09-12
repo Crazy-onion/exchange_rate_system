@@ -19,6 +19,8 @@ import os
 import sys
 import json
 import time
+import glob
+import shutil
 import subprocess
 import urllib.request
 from datetime import datetime, timedelta
@@ -89,12 +91,62 @@ def fetch_online(timeout=30):
         return json.load(r)
 
 
+GIT = None   # 由 find_git() 填充
+
+
+def find_git():
+    """
+    定位 git.exe。
+
+    关键背景：本机使用的是 WorkBuddy 自带的 PortableGit，
+    只存在于 Git Bash 的 PATH 里，Windows 系统 PATH 中并没有。
+    因此由「启动文件夹 / pythonw」拉起的进程不能直接写 git，
+    必须显式拼出绝对路径，否则会抛 FileNotFoundError。
+    """
+    g = shutil.which("git")
+    if g:
+        return g
+
+    home = os.path.expanduser("~")
+    candidates = [
+        r"C:\Program Files\Git\cmd\git.exe",
+        r"C:\Program Files\Git\bin\git.exe",
+        r"C:\Program Files (x86)\Git\cmd\git.exe",
+        os.path.join(home, r"AppData\Local\Programs\Git\cmd\git.exe"),
+    ]
+    # WorkBuddy 便携版（版本号目录用通配符兜住）
+    candidates += sorted(glob.glob(
+        os.path.join(home, r".workbuddy\binaries\PortableGit\versions\*\mingw64\bin\git.exe")
+    ), reverse=True)
+    candidates += sorted(glob.glob(
+        os.path.join(home, r".workbuddy\binaries\PortableGit\versions\*\cmd\git.exe")
+    ), reverse=True)
+
+    for c in candidates:
+        if c and os.path.exists(c):
+            return c
+    return None
+
+
+def git_env():
+    """构造子进程环境：把 git 所在目录塞进 PATH，并禁止交互式凭证弹窗"""
+    env = os.environ.copy()
+    if GIT:
+        env["PATH"] = os.path.dirname(GIT) + os.pathsep + env.get("PATH", "")
+    env.setdefault("HOME", os.path.expanduser("~"))
+    env.setdefault("USERPROFILE", os.path.expanduser("~"))
+    env["GIT_TERMINAL_PROMPT"] = "0"       # 关键：非交互，卡住也要报错而不是等待输入
+    env["GIT_ASKPASS"] = ""
+    return env
+
+
 def run(cmd, timeout=1200, cwd=None):
     """执行命令，返回 (returncode, stdout+stderr)"""
     try:
         p = subprocess.run(
             cmd, cwd=cwd or str(ROOT), capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=timeout, shell=False,
+            env=git_env(),
         )
         return p.returncode, (p.stdout or "") + (p.stderr or "")
     except subprocess.TimeoutExpired:
@@ -104,7 +156,12 @@ def run(cmd, timeout=1200, cwd=None):
 
 
 def git(args, timeout=300):
-    return run(["git"] + args, timeout=timeout)
+    if not GIT:
+        return -1, "找不到 git.exe（已尝试 PATH 与常见安装路径）"
+    return run([GIT] + args, timeout=timeout)
+
+
+GIT = find_git()   # 模块载入时先探测一次，main() 里会再确认
 
 
 # ---------------- 步骤 ----------------
@@ -213,8 +270,27 @@ def verify():
 
 
 def main():
+    global GIT
     force = "--force" in sys.argv
     no_push = "--no-push" in sys.argv
+    selftest = "--selftest" in sys.argv
+
+    GIT = find_git()
+    log(f"git 可执行文件: {GIT or '未找到（严重）'}")
+
+    if selftest:
+        log(">>> 自检模式：验证非 Git Bash 环境下能否正常调用 git")
+        for label, args in [
+            ("git --version", ["--version"]),
+            ("git log -1", ["-C", str(ROOT), "log", "-1", "--format=%h %ad %s", "--date=format:%m-%d %H:%M"]),
+            ("git status", ["-C", str(ROOT), "status", "--short"]),
+            ("git ls-remote", ["ls-remote", "--heads", "origin", BRANCH]),
+        ]:
+            rc, out = git(args, timeout=120)
+            clean = " | ".join([l for l in out.strip().splitlines() if l.strip()][-2:])
+            log(f"    {label:<16} rc={rc}  {clean[:160]}")
+        log("<<< 自检结束")
+        return 0 if GIT else 2
 
     log("=" * 60)
     log(f"汇率底稿自动更新启动  PID={os.getpid()}  force={force}")
